@@ -1,0 +1,49 @@
+[network]
+name = "test-network"
+version = "1.0"
+
+# Node definitions
+[[nodes]]
+id = "A"
+address = "localhost:5001"
+
+[[nodes]]
+id = "B"
+address = "localhost:5002"
+
+[[nodes]]
+id = "C"
+address = "localhost:5003"
+
+[[nodes]]
+id = "D"
+address = "localhost:5004"
+
+# Link definitions (edges)
+[[links]]
+from = "A"
+to = "B"
+cost = 10              # 可以是静态配置
+simulated_delay_ms = 5 # 模拟延迟（可选）
+
+[[links]]
+from = "B"
+to = "C"
+cost = 20
+
+[[links]]
+from = "A"
+to = "C"
+cost = 50
+
+[[links]]
+from = "C"
+to = "D"
+cost = 15
+
+# Routing configuration
+[routing]
+algorithm = "dijkstra"
+default_ttl = 64
+enable_topology_sync = false  # 是否启用动态拓扑同步
+sync_interval_sec = 30        # 拓扑同步间隔

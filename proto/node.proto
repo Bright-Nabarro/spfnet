@@ -1,0 +1,80 @@
+syntax = "proto3";
+
+package spfnet;
+
+option go_package = "./proto";
+
+// ==================== 数据传输层服务 ====================
+// 节点之间用的服务，相当于“应用层里的 IP 层”
+service NodeService {
+    // 1. 数据转发：按下一跳转发一个“逻辑包”
+    rpc ForwardPacket(Packet) returns (ForwardResponse);
+
+    // 2. 链路质量探测：用于测量 cost（如 RTT）
+    rpc ProbeLinkQuality(ProbeRequest) returns (ProbeResponse);
+
+    // 3. 可选：健康检查
+    rpc Ping(PingRequest) returns (PingResponse);
+}
+
+// 一个逻辑数据包
+message Packet {
+    // 源节点 ID（逻辑标识，比如 "A"、"node-1"）
+    string source = 1;
+
+    // 目标节点 ID（逻辑标识，最终接收方）
+    string destination = 2;
+
+    // 当前包要发送到的下一跳节点 ID（由发送端路由表决定）
+    string next_hop = 3;
+
+    // 包的唯一 ID（用于调试、追踪路径，可选）
+    string packet_id = 4;
+
+    // 载荷（真正要传输的业务数据）
+    bytes payload = 5;
+
+    // 可选：记录已走过的路径（便于调试/展示）
+    repeated string visited_nodes = 6;
+}
+
+message ForwardResponse {
+    // 本次转发是否成功投递到下一跳
+    bool success = 1;
+
+    // 出错时的信息（例如目标不可达）
+    string message = 2;
+}
+
+// 链路质量探测请求
+message ProbeRequest {
+    // 发起探测的节点 ID（可选，用于调试）
+    string source = 1;
+
+    // 目标节点 ID（要探测到哪个邻居）
+    string target = 2;
+}
+
+// 链路质量探测响应
+message ProbeResponse {
+    // 探测是否成功
+    bool success = 1;
+    
+    // 单位毫秒的 RTT（往返时间）
+    int64 rtt_ms = 2;
+    
+    // 根据 rtt 计算出的 cost（你自己定义算法）
+    double cost = 3;
+    
+    // 出错信息
+    string message = 4;
+}
+
+// 健康检查
+message PingRequest {
+    string msg = 1;
+}
+
+message PingResponse {
+    string msg = 1;
+}
