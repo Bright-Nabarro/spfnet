@@ -172,7 +172,9 @@ type ProbeRequest struct {
 	// 发起探测的节点 ID（可选，用于调试）
 	Source string `protobuf:"bytes,1,opt,name=source,proto3" json:"source,omitempty"`
 	// 目标节点 ID（要探测到哪个邻居）
-	Target        string `protobuf:"bytes,2,opt,name=target,proto3" json:"target,omitempty"`
+	Target string `protobuf:"bytes,2,opt,name=target,proto3" json:"target,omitempty"`
+	// 自我调试模式（随机生成开销）
+	SelfDebug     bool `protobuf:"varint,3,opt,name=self_debug,json=selfDebug,proto3" json:"self_debug,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -219,6 +221,13 @@ func (x *ProbeRequest) GetTarget() string {
 		return x.Target
 	}
 	return ""
+}
+
+func (x *ProbeRequest) GetSelfDebug() bool {
+	if x != nil {
+		return x.SelfDebug
+	}
+	return false
 }
 
 // 链路质量探测响应
@@ -383,6 +392,372 @@ func (x *PingResponse) GetMsg() string {
 	return ""
 }
 
+// 添加链路请求
+type AddLinkRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// 目标邻居节点 ID
+	Neighbor string `protobuf:"bytes,1,opt,name=neighbor,proto3" json:"neighbor,omitempty"`
+	// 邻居节点的 gRPC 地址（例如 "localhost:50052"）
+	NeighborAddress string `protobuf:"bytes,2,opt,name=neighbor_address,json=neighborAddress,proto3" json:"neighbor_address,omitempty"`
+	// 链路成本（可选，如果不提供则自动探测）
+	Cost float64 `protobuf:"fixed64,3,opt,name=cost,proto3" json:"cost,omitempty"`
+	// 是否自动探测成本（默认 true）
+	AutoProbe     bool `protobuf:"varint,4,opt,name=auto_probe,json=autoProbe,proto3" json:"auto_probe,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AddLinkRequest) Reset() {
+	*x = AddLinkRequest{}
+	mi := &file_node_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AddLinkRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AddLinkRequest) ProtoMessage() {}
+
+func (x *AddLinkRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_node_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AddLinkRequest.ProtoReflect.Descriptor instead.
+func (*AddLinkRequest) Descriptor() ([]byte, []int) {
+	return file_node_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *AddLinkRequest) GetNeighbor() string {
+	if x != nil {
+		return x.Neighbor
+	}
+	return ""
+}
+
+func (x *AddLinkRequest) GetNeighborAddress() string {
+	if x != nil {
+		return x.NeighborAddress
+	}
+	return ""
+}
+
+func (x *AddLinkRequest) GetCost() float64 {
+	if x != nil {
+		return x.Cost
+	}
+	return 0
+}
+
+func (x *AddLinkRequest) GetAutoProbe() bool {
+	if x != nil {
+		return x.AutoProbe
+	}
+	return false
+}
+
+// 添加链路响应
+type AddLinkResponse struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// 操作是否成功
+	Success bool `protobuf:"varint,1,opt,name=success,proto3" json:"success,omitempty"`
+	// 返回信息
+	Message string `protobuf:"bytes,2,opt,name=message,proto3" json:"message,omitempty"`
+	// 实际使用的链路成本
+	Cost          float64 `protobuf:"fixed64,3,opt,name=cost,proto3" json:"cost,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AddLinkResponse) Reset() {
+	*x = AddLinkResponse{}
+	mi := &file_node_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AddLinkResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AddLinkResponse) ProtoMessage() {}
+
+func (x *AddLinkResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_node_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AddLinkResponse.ProtoReflect.Descriptor instead.
+func (*AddLinkResponse) Descriptor() ([]byte, []int) {
+	return file_node_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *AddLinkResponse) GetSuccess() bool {
+	if x != nil {
+		return x.Success
+	}
+	return false
+}
+
+func (x *AddLinkResponse) GetMessage() string {
+	if x != nil {
+		return x.Message
+	}
+	return ""
+}
+
+func (x *AddLinkResponse) GetCost() float64 {
+	if x != nil {
+		return x.Cost
+	}
+	return 0
+}
+
+// 发送数据包请求
+type SendPacketRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// 源节点的 gRPC 地址（例如 "localhost:5001"）
+	SourceAddress string `protobuf:"bytes,1,opt,name=source_address,json=sourceAddress,proto3" json:"source_address,omitempty"`
+	// 要发送的数据包
+	Packet        *Packet `protobuf:"bytes,2,opt,name=packet,proto3" json:"packet,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SendPacketRequest) Reset() {
+	*x = SendPacketRequest{}
+	mi := &file_node_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SendPacketRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SendPacketRequest) ProtoMessage() {}
+
+func (x *SendPacketRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_node_proto_msgTypes[8]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SendPacketRequest.ProtoReflect.Descriptor instead.
+func (*SendPacketRequest) Descriptor() ([]byte, []int) {
+	return file_node_proto_rawDescGZIP(), []int{8}
+}
+
+func (x *SendPacketRequest) GetSourceAddress() string {
+	if x != nil {
+		return x.SourceAddress
+	}
+	return ""
+}
+
+func (x *SendPacketRequest) GetPacket() *Packet {
+	if x != nil {
+		return x.Packet
+	}
+	return nil
+}
+
+// 发送数据包响应
+type SendPacketResponse struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// 操作是否成功
+	Success bool `protobuf:"varint,1,opt,name=success,proto3" json:"success,omitempty"`
+	// 返回信息
+	Message string `protobuf:"bytes,2,opt,name=message,proto3" json:"message,omitempty"`
+	// 数据包 ID（用于追踪）
+	PacketId      string `protobuf:"bytes,3,opt,name=packet_id,json=packetId,proto3" json:"packet_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SendPacketResponse) Reset() {
+	*x = SendPacketResponse{}
+	mi := &file_node_proto_msgTypes[9]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SendPacketResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SendPacketResponse) ProtoMessage() {}
+
+func (x *SendPacketResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_node_proto_msgTypes[9]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SendPacketResponse.ProtoReflect.Descriptor instead.
+func (*SendPacketResponse) Descriptor() ([]byte, []int) {
+	return file_node_proto_rawDescGZIP(), []int{9}
+}
+
+func (x *SendPacketResponse) GetSuccess() bool {
+	if x != nil {
+		return x.Success
+	}
+	return false
+}
+
+func (x *SendPacketResponse) GetMessage() string {
+	if x != nil {
+		return x.Message
+	}
+	return ""
+}
+
+func (x *SendPacketResponse) GetPacketId() string {
+	if x != nil {
+		return x.PacketId
+	}
+	return ""
+}
+
+// 启用或禁用同步请求
+type EnableSyncRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// 是否启用同步
+	Enabled       bool `protobuf:"varint,1,opt,name=enabled,proto3" json:"enabled,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *EnableSyncRequest) Reset() {
+	*x = EnableSyncRequest{}
+	mi := &file_node_proto_msgTypes[10]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *EnableSyncRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*EnableSyncRequest) ProtoMessage() {}
+
+func (x *EnableSyncRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_node_proto_msgTypes[10]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use EnableSyncRequest.ProtoReflect.Descriptor instead.
+func (*EnableSyncRequest) Descriptor() ([]byte, []int) {
+	return file_node_proto_rawDescGZIP(), []int{10}
+}
+
+func (x *EnableSyncRequest) GetEnabled() bool {
+	if x != nil {
+		return x.Enabled
+	}
+	return false
+}
+
+// 启用或禁用同步响应
+type EnableSyncResponse struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// 操作是否成功
+	Success bool `protobuf:"varint,1,opt,name=success,proto3" json:"success,omitempty"`
+	// 返回信息
+	Message string `protobuf:"bytes,2,opt,name=message,proto3" json:"message,omitempty"`
+	// 当前同步状态
+	Enabled       bool `protobuf:"varint,3,opt,name=enabled,proto3" json:"enabled,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *EnableSyncResponse) Reset() {
+	*x = EnableSyncResponse{}
+	mi := &file_node_proto_msgTypes[11]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *EnableSyncResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*EnableSyncResponse) ProtoMessage() {}
+
+func (x *EnableSyncResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_node_proto_msgTypes[11]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use EnableSyncResponse.ProtoReflect.Descriptor instead.
+func (*EnableSyncResponse) Descriptor() ([]byte, []int) {
+	return file_node_proto_rawDescGZIP(), []int{11}
+}
+
+func (x *EnableSyncResponse) GetSuccess() bool {
+	if x != nil {
+		return x.Success
+	}
+	return false
+}
+
+func (x *EnableSyncResponse) GetMessage() string {
+	if x != nil {
+		return x.Message
+	}
+	return ""
+}
+
+func (x *EnableSyncResponse) GetEnabled() bool {
+	if x != nil {
+		return x.Enabled
+	}
+	return false
+}
+
 var File_node_proto protoreflect.FileDescriptor
 
 const file_node_proto_rawDesc = "" +
@@ -398,10 +773,12 @@ const file_node_proto_rawDesc = "" +
 	"\rvisited_nodes\x18\x06 \x03(\tR\fvisitedNodes\"E\n" +
 	"\x0fForwardResponse\x12\x18\n" +
 	"\asuccess\x18\x01 \x01(\bR\asuccess\x12\x18\n" +
-	"\amessage\x18\x02 \x01(\tR\amessage\">\n" +
+	"\amessage\x18\x02 \x01(\tR\amessage\"]\n" +
 	"\fProbeRequest\x12\x16\n" +
 	"\x06source\x18\x01 \x01(\tR\x06source\x12\x16\n" +
-	"\x06target\x18\x02 \x01(\tR\x06target\"n\n" +
+	"\x06target\x18\x02 \x01(\tR\x06target\x12\x1d\n" +
+	"\n" +
+	"self_debug\x18\x03 \x01(\bR\tselfDebug\"n\n" +
 	"\rProbeResponse\x12\x18\n" +
 	"\asuccess\x18\x01 \x01(\bR\asuccess\x12\x15\n" +
 	"\x06rtt_ms\x18\x02 \x01(\x03R\x05rttMs\x12\x12\n" +
@@ -410,10 +787,40 @@ const file_node_proto_rawDesc = "" +
 	"\vPingRequest\x12\x10\n" +
 	"\x03msg\x18\x01 \x01(\tR\x03msg\" \n" +
 	"\fPingResponse\x12\x10\n" +
-	"\x03msg\x18\x01 \x01(\tR\x03msg2\xbb\x01\n" +
+	"\x03msg\x18\x01 \x01(\tR\x03msg\"\x8a\x01\n" +
+	"\x0eAddLinkRequest\x12\x1a\n" +
+	"\bneighbor\x18\x01 \x01(\tR\bneighbor\x12)\n" +
+	"\x10neighbor_address\x18\x02 \x01(\tR\x0fneighborAddress\x12\x12\n" +
+	"\x04cost\x18\x03 \x01(\x01R\x04cost\x12\x1d\n" +
+	"\n" +
+	"auto_probe\x18\x04 \x01(\bR\tautoProbe\"Y\n" +
+	"\x0fAddLinkResponse\x12\x18\n" +
+	"\asuccess\x18\x01 \x01(\bR\asuccess\x12\x18\n" +
+	"\amessage\x18\x02 \x01(\tR\amessage\x12\x12\n" +
+	"\x04cost\x18\x03 \x01(\x01R\x04cost\"b\n" +
+	"\x11SendPacketRequest\x12%\n" +
+	"\x0esource_address\x18\x01 \x01(\tR\rsourceAddress\x12&\n" +
+	"\x06packet\x18\x02 \x01(\v2\x0e.spfnet.PacketR\x06packet\"e\n" +
+	"\x12SendPacketResponse\x12\x18\n" +
+	"\asuccess\x18\x01 \x01(\bR\asuccess\x12\x18\n" +
+	"\amessage\x18\x02 \x01(\tR\amessage\x12\x1b\n" +
+	"\tpacket_id\x18\x03 \x01(\tR\bpacketId\"-\n" +
+	"\x11EnableSyncRequest\x12\x18\n" +
+	"\aenabled\x18\x01 \x01(\bR\aenabled\"b\n" +
+	"\x12EnableSyncResponse\x12\x18\n" +
+	"\asuccess\x18\x01 \x01(\bR\asuccess\x12\x18\n" +
+	"\amessage\x18\x02 \x01(\tR\amessage\x12\x18\n" +
+	"\aenabled\x18\x03 \x01(\bR\aenabled2\xbb\x01\n" +
 	"\vNodeService\x128\n" +
 	"\rForwardPacket\x12\x0e.spfnet.Packet\x1a\x17.spfnet.ForwardResponse\x12?\n" +
 	"\x10ProbeLinkQuality\x12\x14.spfnet.ProbeRequest\x1a\x15.spfnet.ProbeResponse\x121\n" +
+	"\x04Ping\x12\x13.spfnet.PingRequest\x1a\x14.spfnet.PingResponse2\x89\x02\n" +
+	"\x0eControlService\x12:\n" +
+	"\aAddLink\x12\x16.spfnet.AddLinkRequest\x1a\x17.spfnet.AddLinkResponse\x12C\n" +
+	"\n" +
+	"SendPacket\x12\x19.spfnet.SendPacketRequest\x1a\x1a.spfnet.SendPacketResponse\x12C\n" +
+	"\n" +
+	"EnableSync\x12\x19.spfnet.EnableSyncRequest\x1a\x1a.spfnet.EnableSyncResponse\x121\n" +
 	"\x04Ping\x12\x13.spfnet.PingRequest\x1a\x14.spfnet.PingResponseB\tZ\a./protob\x06proto3"
 
 var (
@@ -428,27 +835,42 @@ func file_node_proto_rawDescGZIP() []byte {
 	return file_node_proto_rawDescData
 }
 
-var file_node_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
+var file_node_proto_msgTypes = make([]protoimpl.MessageInfo, 12)
 var file_node_proto_goTypes = []any{
-	(*Packet)(nil),          // 0: spfnet.Packet
-	(*ForwardResponse)(nil), // 1: spfnet.ForwardResponse
-	(*ProbeRequest)(nil),    // 2: spfnet.ProbeRequest
-	(*ProbeResponse)(nil),   // 3: spfnet.ProbeResponse
-	(*PingRequest)(nil),     // 4: spfnet.PingRequest
-	(*PingResponse)(nil),    // 5: spfnet.PingResponse
+	(*Packet)(nil),             // 0: spfnet.Packet
+	(*ForwardResponse)(nil),    // 1: spfnet.ForwardResponse
+	(*ProbeRequest)(nil),       // 2: spfnet.ProbeRequest
+	(*ProbeResponse)(nil),      // 3: spfnet.ProbeResponse
+	(*PingRequest)(nil),        // 4: spfnet.PingRequest
+	(*PingResponse)(nil),       // 5: spfnet.PingResponse
+	(*AddLinkRequest)(nil),     // 6: spfnet.AddLinkRequest
+	(*AddLinkResponse)(nil),    // 7: spfnet.AddLinkResponse
+	(*SendPacketRequest)(nil),  // 8: spfnet.SendPacketRequest
+	(*SendPacketResponse)(nil), // 9: spfnet.SendPacketResponse
+	(*EnableSyncRequest)(nil),  // 10: spfnet.EnableSyncRequest
+	(*EnableSyncResponse)(nil), // 11: spfnet.EnableSyncResponse
 }
 var file_node_proto_depIdxs = []int32{
-	0, // 0: spfnet.NodeService.ForwardPacket:input_type -> spfnet.Packet
-	2, // 1: spfnet.NodeService.ProbeLinkQuality:input_type -> spfnet.ProbeRequest
-	4, // 2: spfnet.NodeService.Ping:input_type -> spfnet.PingRequest
-	1, // 3: spfnet.NodeService.ForwardPacket:output_type -> spfnet.ForwardResponse
-	3, // 4: spfnet.NodeService.ProbeLinkQuality:output_type -> spfnet.ProbeResponse
-	5, // 5: spfnet.NodeService.Ping:output_type -> spfnet.PingResponse
-	3, // [3:6] is the sub-list for method output_type
-	0, // [0:3] is the sub-list for method input_type
-	0, // [0:0] is the sub-list for extension type_name
-	0, // [0:0] is the sub-list for extension extendee
-	0, // [0:0] is the sub-list for field type_name
+	0,  // 0: spfnet.SendPacketRequest.packet:type_name -> spfnet.Packet
+	0,  // 1: spfnet.NodeService.ForwardPacket:input_type -> spfnet.Packet
+	2,  // 2: spfnet.NodeService.ProbeLinkQuality:input_type -> spfnet.ProbeRequest
+	4,  // 3: spfnet.NodeService.Ping:input_type -> spfnet.PingRequest
+	6,  // 4: spfnet.ControlService.AddLink:input_type -> spfnet.AddLinkRequest
+	8,  // 5: spfnet.ControlService.SendPacket:input_type -> spfnet.SendPacketRequest
+	10, // 6: spfnet.ControlService.EnableSync:input_type -> spfnet.EnableSyncRequest
+	4,  // 7: spfnet.ControlService.Ping:input_type -> spfnet.PingRequest
+	1,  // 8: spfnet.NodeService.ForwardPacket:output_type -> spfnet.ForwardResponse
+	3,  // 9: spfnet.NodeService.ProbeLinkQuality:output_type -> spfnet.ProbeResponse
+	5,  // 10: spfnet.NodeService.Ping:output_type -> spfnet.PingResponse
+	7,  // 11: spfnet.ControlService.AddLink:output_type -> spfnet.AddLinkResponse
+	9,  // 12: spfnet.ControlService.SendPacket:output_type -> spfnet.SendPacketResponse
+	11, // 13: spfnet.ControlService.EnableSync:output_type -> spfnet.EnableSyncResponse
+	5,  // 14: spfnet.ControlService.Ping:output_type -> spfnet.PingResponse
+	8,  // [8:15] is the sub-list for method output_type
+	1,  // [1:8] is the sub-list for method input_type
+	1,  // [1:1] is the sub-list for extension type_name
+	1,  // [1:1] is the sub-list for extension extendee
+	0,  // [0:1] is the sub-list for field type_name
 }
 
 func init() { file_node_proto_init() }
@@ -462,9 +884,9 @@ func file_node_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_node_proto_rawDesc), len(file_node_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   6,
+			NumMessages:   12,
 			NumExtensions: 0,
-			NumServices:   1,
+			NumServices:   2,
 		},
 		GoTypes:           file_node_proto_goTypes,
 		DependencyIndexes: file_node_proto_depIdxs,

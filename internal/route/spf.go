@@ -32,12 +32,18 @@ func (calc *SPFCalculator) ComputeRoutes(
 	sourceNodeID string,
 	topology *Topology,
 ) (*RouteTable, error) {
+
+	//获取所有节点，用于初始化 map 容量
+	allNodes := topology.GetAllNodes()
+	nodeCount := len(allNodes)
+
 	// 构建 Dijkstra 图
-	distance := make(map[string]float64)
-	nextHop := make(map[string]string) // 直接记录从源节点出发的下一跳
+	distance := make(map[string]float64, nodeCount)
+	nextHop := make(map[string]string, nodeCount)
+	previous := make(map[string]string, nodeCount)
 
 	// 初始化所有节点距离为无穷大
-	for _, node := range topology.GetAllNodes() {
+	for _, node := range allNodes {
 		distance[node.ID] = math.Inf(1)
 	}
 	distance[sourceNodeID] = 0
@@ -54,33 +60,37 @@ func (calc *SPFCalculator) ComputeRoutes(
 	})
 	pq.Enqueue(&Item{nodeID: sourceNodeID, priority: 0})
 
-	visited := make(map[string]bool)
-	neighbor_cache := make(map[string]map[string]float64)
+	// 改动：删除了 visited map，直接用距离判断
+
+	// 改动：重命名为驼峰式 neighborCache
+	neighborCache := make(map[string]map[string]float64)
 
 	for !pq.Empty() {
 		item, _ := pq.Dequeue()
 		currentNodeID := item.(*Item).nodeID
 		currentCost := item.(*Item).priority
 
-		// 如果已访问过,跳过
-		if visited[currentNodeID] {
+		// 改动：使用距离判断代替 visited map
+		// 如果当前从队列取出的路径成本 > 我们已经记录的最短路径，说明是过期数据，跳过
+		if currentCost > distance[currentNodeID] {
 			continue
 		}
-		visited[currentNodeID] = true
 
-		neighbors, ok := neighbor_cache[currentNodeID]
+		// 检查缓存
+		neighbors, ok := neighborCache[currentNodeID]
 		if !ok {
 			neighbors = topology.GetNeighbors(currentNodeID)
-			neighbor_cache[currentNodeID] = neighbors
+			neighborCache[currentNodeID] = neighbors
 		}
 
 		for neighborID, linkCost := range neighbors {
 			newCost := currentCost + linkCost
+
 			if newCost < distance[neighborID] {
 				distance[neighborID] = newCost
+				previous[neighborID] = currentNodeID // 记录前驱节点
 
-				// 记录下一跳：如果当前节点是源节点，下一跳就是邻居节点
-				// 否则，继承当前节点的下一跳
+				// 记录下一跳
 				if currentNodeID == sourceNodeID {
 					nextHop[neighborID] = neighborID
 				} else {
@@ -106,11 +116,27 @@ func (calc *SPFCalculator) ComputeRoutes(
 			continue
 		}
 
+		// 改动：路径重建优化
+		// 1. 先追加到 Slice 末尾 (O(1))，避免原来的 Prepend (O(N))
+		path := make([]string, 0, 8) // 给个默认小容量避免初期扩容
+		for at := destNodeID; at != ""; at = previous[at] {
+			path = append(path, at)
+			if at == sourceNodeID {
+				break
+			}
+		}
+
+		// 2. 反转 Slice
+		for i, j := 0, len(path)-1; i < j; i, j = i+1, j-1 {
+			path[i], path[j] = path[j], path[i]
+		}
+
 		// 添加到路由表
 		newRoute := &Route{
 			Destination: destNodeID,
 			NextHop:     nextHop[destNodeID],
 			Cost:        dist,
+			Path:        path,
 		}
 		routeTable.AddRoute(newRoute)
 	}

@@ -29,7 +29,6 @@ const (
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 //
 // ==================== 数据传输层服务 ====================
-// 节点之间用的服务，相当于“应用层里的 IP 层”
 type NodeServiceClient interface {
 	// 1. 数据转发：按下一跳转发一个“逻辑包”
 	ForwardPacket(ctx context.Context, in *Packet, opts ...grpc.CallOption) (*ForwardResponse, error)
@@ -82,7 +81,6 @@ func (c *nodeServiceClient) Ping(ctx context.Context, in *PingRequest, opts ...g
 // for forward compatibility.
 //
 // ==================== 数据传输层服务 ====================
-// 节点之间用的服务，相当于“应用层里的 IP 层”
 type NodeServiceServer interface {
 	// 1. 数据转发：按下一跳转发一个“逻辑包”
 	ForwardPacket(context.Context, *Packet) (*ForwardResponse, error)
@@ -202,6 +200,236 @@ var NodeService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Ping",
 			Handler:    _NodeService_Ping_Handler,
+		},
+	},
+	Streams:  []grpc.StreamDesc{},
+	Metadata: "node.proto",
+}
+
+const (
+	ControlService_AddLink_FullMethodName    = "/spfnet.ControlService/AddLink"
+	ControlService_SendPacket_FullMethodName = "/spfnet.ControlService/SendPacket"
+	ControlService_EnableSync_FullMethodName = "/spfnet.ControlService/EnableSync"
+	ControlService_Ping_FullMethodName       = "/spfnet.ControlService/Ping"
+)
+
+// ControlServiceClient is the client API for ControlService service.
+//
+// For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
+//
+// ==================== 控制管理服务 ====================
+// 客户端用于管理节点的服务（添加链路、查询状态等）
+type ControlServiceClient interface {
+	// 添加或更新链路
+	AddLink(ctx context.Context, in *AddLinkRequest, opts ...grpc.CallOption) (*AddLinkResponse, error)
+	// 动态发送数据包（用于测试）
+	SendPacket(ctx context.Context, in *SendPacketRequest, opts ...grpc.CallOption) (*SendPacketResponse, error)
+	// 启用或禁用拓扑同步
+	EnableSync(ctx context.Context, in *EnableSyncRequest, opts ...grpc.CallOption) (*EnableSyncResponse, error)
+	// 健康检查
+	Ping(ctx context.Context, in *PingRequest, opts ...grpc.CallOption) (*PingResponse, error)
+}
+
+type controlServiceClient struct {
+	cc grpc.ClientConnInterface
+}
+
+func NewControlServiceClient(cc grpc.ClientConnInterface) ControlServiceClient {
+	return &controlServiceClient{cc}
+}
+
+func (c *controlServiceClient) AddLink(ctx context.Context, in *AddLinkRequest, opts ...grpc.CallOption) (*AddLinkResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(AddLinkResponse)
+	err := c.cc.Invoke(ctx, ControlService_AddLink_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *controlServiceClient) SendPacket(ctx context.Context, in *SendPacketRequest, opts ...grpc.CallOption) (*SendPacketResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(SendPacketResponse)
+	err := c.cc.Invoke(ctx, ControlService_SendPacket_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *controlServiceClient) EnableSync(ctx context.Context, in *EnableSyncRequest, opts ...grpc.CallOption) (*EnableSyncResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(EnableSyncResponse)
+	err := c.cc.Invoke(ctx, ControlService_EnableSync_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *controlServiceClient) Ping(ctx context.Context, in *PingRequest, opts ...grpc.CallOption) (*PingResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(PingResponse)
+	err := c.cc.Invoke(ctx, ControlService_Ping_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// ControlServiceServer is the server API for ControlService service.
+// All implementations must embed UnimplementedControlServiceServer
+// for forward compatibility.
+//
+// ==================== 控制管理服务 ====================
+// 客户端用于管理节点的服务（添加链路、查询状态等）
+type ControlServiceServer interface {
+	// 添加或更新链路
+	AddLink(context.Context, *AddLinkRequest) (*AddLinkResponse, error)
+	// 动态发送数据包（用于测试）
+	SendPacket(context.Context, *SendPacketRequest) (*SendPacketResponse, error)
+	// 启用或禁用拓扑同步
+	EnableSync(context.Context, *EnableSyncRequest) (*EnableSyncResponse, error)
+	// 健康检查
+	Ping(context.Context, *PingRequest) (*PingResponse, error)
+	mustEmbedUnimplementedControlServiceServer()
+}
+
+// UnimplementedControlServiceServer must be embedded to have
+// forward compatible implementations.
+//
+// NOTE: this should be embedded by value instead of pointer to avoid a nil
+// pointer dereference when methods are called.
+type UnimplementedControlServiceServer struct{}
+
+func (UnimplementedControlServiceServer) AddLink(context.Context, *AddLinkRequest) (*AddLinkResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method AddLink not implemented")
+}
+func (UnimplementedControlServiceServer) SendPacket(context.Context, *SendPacketRequest) (*SendPacketResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method SendPacket not implemented")
+}
+func (UnimplementedControlServiceServer) EnableSync(context.Context, *EnableSyncRequest) (*EnableSyncResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method EnableSync not implemented")
+}
+func (UnimplementedControlServiceServer) Ping(context.Context, *PingRequest) (*PingResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method Ping not implemented")
+}
+func (UnimplementedControlServiceServer) mustEmbedUnimplementedControlServiceServer() {}
+func (UnimplementedControlServiceServer) testEmbeddedByValue()                        {}
+
+// UnsafeControlServiceServer may be embedded to opt out of forward compatibility for this service.
+// Use of this interface is not recommended, as added methods to ControlServiceServer will
+// result in compilation errors.
+type UnsafeControlServiceServer interface {
+	mustEmbedUnimplementedControlServiceServer()
+}
+
+func RegisterControlServiceServer(s grpc.ServiceRegistrar, srv ControlServiceServer) {
+	// If the following call panics, it indicates UnimplementedControlServiceServer was
+	// embedded by pointer and is nil.  This will cause panics if an
+	// unimplemented method is ever invoked, so we test this at initialization
+	// time to prevent it from happening at runtime later due to I/O.
+	if t, ok := srv.(interface{ testEmbeddedByValue() }); ok {
+		t.testEmbeddedByValue()
+	}
+	s.RegisterService(&ControlService_ServiceDesc, srv)
+}
+
+func _ControlService_AddLink_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AddLinkRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ControlServiceServer).AddLink(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ControlService_AddLink_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ControlServiceServer).AddLink(ctx, req.(*AddLinkRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ControlService_SendPacket_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SendPacketRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ControlServiceServer).SendPacket(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ControlService_SendPacket_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ControlServiceServer).SendPacket(ctx, req.(*SendPacketRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ControlService_EnableSync_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(EnableSyncRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ControlServiceServer).EnableSync(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ControlService_EnableSync_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ControlServiceServer).EnableSync(ctx, req.(*EnableSyncRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ControlService_Ping_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(PingRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ControlServiceServer).Ping(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ControlService_Ping_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ControlServiceServer).Ping(ctx, req.(*PingRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+// ControlService_ServiceDesc is the grpc.ServiceDesc for ControlService service.
+// It's only intended for direct use with grpc.RegisterService,
+// and not to be introspected or modified (even as a copy)
+var ControlService_ServiceDesc = grpc.ServiceDesc{
+	ServiceName: "spfnet.ControlService",
+	HandlerType: (*ControlServiceServer)(nil),
+	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "AddLink",
+			Handler:    _ControlService_AddLink_Handler,
+		},
+		{
+			MethodName: "SendPacket",
+			Handler:    _ControlService_SendPacket_Handler,
+		},
+		{
+			MethodName: "EnableSync",
+			Handler:    _ControlService_EnableSync_Handler,
+		},
+		{
+			MethodName: "Ping",
+			Handler:    _ControlService_Ping_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

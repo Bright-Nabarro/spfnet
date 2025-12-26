@@ -1,0 +1,17 @@
+# 应用通用配置
+
+[log]
+# 日志输出模式: "file" 或 "stdout"
+output = "stdout"
+
+# 当 output = "file" 时，指定日志目录
+# 日志文件将按照节点ID命名，如: {log_dir}/{node_id}.log
+#log_dir = "log"
+
+# 日志级别: debug, info, warn, error
+# level = "info"
+
+[topology]
+# 全量拓扑同步间隔（秒）
+# 定期广播完整的拓扑信息，确保集群节点拓扑一致性
+sync_interval = 30

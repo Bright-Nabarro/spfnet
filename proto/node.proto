@@ -5,7 +5,6 @@ package spfnet;
 option go_package = "./proto";
 
 // ==================== 数据传输层服务 ====================
-// 节点之间用的服务，相当于“应用层里的 IP 层”
 service NodeService {
     // 1. 数据转发：按下一跳转发一个“逻辑包”
     rpc ForwardPacket(Packet) returns (ForwardResponse);
@@ -53,6 +52,9 @@ message ProbeRequest {
 
     // 目标节点 ID（要探测到哪个邻居）
     string target = 2;
+
+    // 自我调试模式（随机生成开销）
+    bool self_debug = 3;
 }
 
 // 链路质量探测响应
@@ -77,4 +79,86 @@ message PingRequest {
 
 message PingResponse {
     string msg = 1;
+}
+
+// ==================== 控制管理服务 ====================
+// 客户端用于管理节点的服务（添加链路、查询状态等）
+service ControlService {
+    // 添加或更新链路
+    rpc AddLink(AddLinkRequest) returns (AddLinkResponse);
+
+    // 动态发送数据包（用于测试）
+    rpc SendPacket(SendPacketRequest) returns (SendPacketResponse);
+
+    // 启用或禁用拓扑同步
+    rpc EnableSync(EnableSyncRequest) returns (EnableSyncResponse);
+
+    // 健康检查
+    rpc Ping(PingRequest) returns (PingResponse);
+}
+
+// 添加链路请求
+message AddLinkRequest {
+    // 目标邻居节点 ID
+    string neighbor = 1;
+
+    // 邻居节点的 gRPC 地址（例如 "localhost:50052"）
+    string neighbor_address = 2;
+
+    // 链路成本（可选，如果不提供则自动探测）
+    double cost = 3;
+
+    // 是否自动探测成本（默认 true）
+    bool auto_probe = 4;
+}
+
+// 添加链路响应
+message AddLinkResponse {
+    // 操作是否成功
+    bool success = 1;
+
+    // 返回信息
+    string message = 2;
+
+    // 实际使用的链路成本
+    double cost = 3;
+}
+
+// 发送数据包请求
+message SendPacketRequest {
+    // 源节点的 gRPC 地址（例如 "localhost:5001"）
+    string source_address = 1;
+
+    // 要发送的数据包
+    Packet packet = 2;
+}
+
+// 发送数据包响应
+message SendPacketResponse {
+    // 操作是否成功
+    bool success = 1;
+
+    // 返回信息
+    string message = 2;
+
+    // 数据包 ID（用于追踪）
+    string packet_id = 3;
+}
+
+// 启用或禁用同步请求
+message EnableSyncRequest {
+    // 是否启用同步
+    bool enabled = 1;
+}
+
+// 启用或禁用同步响应
+message EnableSyncResponse {
+    // 操作是否成功
+    bool success = 1;
+
+    // 返回信息
+    string message = 2;
+
+    // 当前同步状态
+    bool enabled = 3;
 }

@@ -120,7 +120,7 @@ func (rt *RouteTable) String() string {
 	result += fmt.Sprintf("%-12s %-8s %-6s %s\n", "Destination", "NextHop", "Cost", "Path")
 	for _, route := range rt.routes {
 		result += fmt.Sprintf(
-			"%-12s %-8s %-6.2f %v\n",
+			"%-12s %-8s %-6.2f\n",
 			route.Destination,
 			route.NextHop,
 			route.Cost,

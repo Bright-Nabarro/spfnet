@@ -1,49 +1,74 @@
-[network]
-name = "test-network"
-version = "1.0"
-
-# Node definitions
-[[nodes]]
-id = "A"
-address = "localhost:5001"
+# SPF 网络拓扑配置文件
+# 使用方法: bin/spf_route -config configs/topology.toml -node nodeA
 
 [[nodes]]
-id = "B"
-address = "localhost:5002"
+id = "nodeA"
+ip = "127.0.0.1"
+grpc_port = 5001
+serf_port = 7001
+# join 为空表示第一个节点，作为集群入口
 
 [[nodes]]
-id = "C"
-address = "localhost:5003"
+id = "nodeB"
+ip = "127.0.0.1"
+grpc_port = 5002
+serf_port = 7002
+join = "127.0.0.1:7001"
 
 [[nodes]]
-id = "D"
-address = "localhost:5004"
+id = "nodeC"
+ip = "127.0.0.1"
+grpc_port = 5003
+serf_port = 7003
+join = "127.0.0.1:7001"
 
-# Link definitions (edges)
-[[links]]
-from = "A"
-to = "B"
-cost = 10              # 可以是静态配置
-simulated_delay_ms = 5 # 模拟延迟（可选）
+[[nodes]]
+id = "nodeD"
+ip = "127.0.0.1"
+grpc_port = 5004
+serf_port = 7004
+join = "127.0.0.1:7001"
 
-[[links]]
-from = "B"
-to = "C"
-cost = 20
+[[nodes]]
+id = "nodeE"
+ip = "127.0.0.1"
+grpc_port = 5005
+serf_port = 7005
+join = "127.0.0.1:7001"
 
-[[links]]
-from = "A"
-to = "C"
-cost = 50
+# 边配置 (无向图)
+# 每条边定义两个节点之间的连接和成本
+# [[edges]]
+# from = "nodeA"
+# to = "nodeB"
+# cost = 1
 
-[[links]]
-from = "C"
-to = "D"
-cost = 15
+# [[edges]]
+# from = "nodeA"
+# to = "nodeC"
+# cost = 2
 
-# Routing configuration
-[routing]
-algorithm = "dijkstra"
-default_ttl = 64
-enable_topology_sync = false  # 是否启用动态拓扑同步
-sync_interval_sec = 30        # 拓扑同步间隔
+# [[edges]]
+# from = "nodeB"
+# to = "nodeC"
+# cost = 1
+
+# [[edges]]
+# from = "nodeB"
+# to = "nodeD"
+# cost = 3
+
+# [[edges]]
+# from = "nodeC"
+# to = "nodeD"
+# cost = 1
+
+# [[edges]]
+# from = "nodeC"
+# to = "nodeE"
+# cost = 2
+
+# [[edges]]
+# from = "nodeD"
+# to = "nodeE"
+# cost = 1

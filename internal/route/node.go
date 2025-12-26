@@ -4,13 +4,16 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"strconv"
+	"strings"
 	"sync"
 
 	"github.com/hashicorp/serf/serf"
 )
 
 const (
-	EventLinkUpdate = "link-update"
+	EventLinkUpdate    = "link-update"
+	EventTopologySync  = "topology-sync"
 )
 
 type NodeStatus int
@@ -45,10 +48,11 @@ type Topology struct {
 }
 
 type NodeInfo struct {
-	ID     string
-	IP     string
-	Port   int
-	Status NodeStatus
+	ID      string
+	IP      string
+	Port    int
+	RPCAddr string // gRPC 地址，格式 "ip:port"
+	Status  NodeStatus
 }
 
 // 链路事件更新
@@ -60,6 +64,19 @@ type LinkUpdateEvent struct {
 	Op string `json:"op"` // "add", "update", "remove"
 }
 
+// 全量拓扑同步事件
+type TopologySyncEvent struct {
+	NodeID string              `json:"node_id"` // 发送者节点ID
+	Links  []TopologyLinkEntry `json:"links"`   // 该节点已知的所有链路
+}
+
+// 拓扑链路条目
+type TopologyLinkEntry struct {
+	From string  `json:"from"`
+	To   string  `json:"to"`
+	Cost float64 `json:"cost"`
+}
+
 func NewNode(name, ip string, port int) *Node {
 	ctx, cancel := context.WithCancel(context.Background())
 	return &Node{
@@ -68,9 +85,10 @@ func NewNode(name, ip string, port int) *Node {
 			IP:   ip,
 			Port: port,
 		},
-		eventCh: make(chan serf.Event, 256),
-		ctx:     ctx,
-		cancel:  cancel,
+		eventCh:  make(chan serf.Event, 256),
+		topology: NewTopology(),
+		ctx:      ctx,
+		cancel:   cancel,
 	}
 }
 
@@ -83,10 +101,21 @@ func NewTopology() *Topology {
 
 // 启动节点
 func (n *Node) Start(bindAddr string, joinAddrs []string) error {
+	// 解析 bindAddr 获取端口
+	parts := strings.Split(bindAddr, ":")
+	if len(parts) != 2 {
+		return fmt.Errorf("invalid bind address format: %s", bindAddr)
+	}
+	bindPort, err := strconv.Atoi(parts[1])
+	if err != nil {
+		return fmt.Errorf("invalid bind port: %s", parts[1])
+	}
+
 	// 配置serf
 	config := serf.DefaultConfig()
 	config.NodeName = n.ID
 	config.MemberlistConfig.BindAddr = n.IP
+	config.MemberlistConfig.BindPort = bindPort
 	config.EventCh = n.eventCh
 	// 设置节点标签（metadata)
 	config.Tags = map[string]string{
@@ -103,10 +132,23 @@ func (n *Node) Start(bindAddr string, joinAddrs []string) error {
 	}
 	n.serf = s
 
+	// 加入集群
+	if len(joinAddrs) > 0 {
+		_, err = s.Join(joinAddrs, true)
+		if err != nil {
+			return fmt.Errorf("failed to join cluster: %w", err)
+		}
+	}
+
 	// 将自己放入拓扑
 	n.topology.AddNode(&n.NodeInfo)
 
 	return nil
+}
+
+// GetTopology 获取节点的拓扑
+func (n *Node) GetTopology() *Topology {
+	return n.topology
 }
 
 // Topology func
@@ -153,7 +195,7 @@ func (t *Topology) UpdateLink(from, to string, cost float64 /* seq int64*/) {
 	t.edges[from][to] = cost
 	t.edges[to][from] = cost
 
-	log.Printf("Topology: Updated link %s-%s cost=%d", from, to, cost)
+	log.Printf("Topology: Updated link %s-%s cost=%f", from, to, cost)
 }
 
 func (t *Topology) RemoveLink(from, to string) {
@@ -181,6 +223,13 @@ func (t *Topology) GetNeighbors(nodeName string) map[string]float64 {
 		neighbors[neighbor] = cost
 	}
 	return neighbors
+}
+
+func (t *Topology) GetNode(nodeID string) *NodeInfo {
+	t.mtx.RLock()
+	defer t.mtx.RUnlock()
+
+	return t.nodes[nodeID]
 }
 
 func (t *Topology) GetAllNodes() []*NodeInfo {
@@ -216,7 +265,7 @@ func (t *Topology) String() string {
 	result := "Topology:\n"
 	result += "Nodes:\n"
 	for name, node := range t.nodes {
-		result += fmt.Sprintf(" %s: %s:%d [%s]\n", name, node.IP, node.Port, node.Status)
+		result += fmt.Sprintf(" %s: %s:%d [%v]\n", name, node.IP, node.Port, node.Status)
 	}
 
 	result += "Links:\n"
@@ -225,7 +274,7 @@ func (t *Topology) String() string {
 		for to, cost := range neighbors {
 			edgeID := makeEdgeID(from, to)
 			if !visited[edgeID] {
-				result += fmt.Sprintf("  %s-%s: cost=%d seq=%d\n", from, to, cost)
+				result += fmt.Sprintf("  %s-%s: cost=%f\n", from, to, cost)
 				visited[edgeID] = true
 			}
 		}
